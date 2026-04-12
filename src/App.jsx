@@ -10,6 +10,7 @@ import IssueDetail from './pages/IssueDetail';
 import MyIssues from './pages/MyIssues';
 import MyVillage from './pages/MyVillage';
 import AuthorityPanel from './pages/AuthorityPanel';
+import Explore from './pages/Explore';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -40,6 +41,7 @@ const AppRoutes = () => {
         }
       >
         <Route path="/" element={<Dashboard />} />
+        <Route path="/explore" element={<Explore />} />
         <Route path="/report" element={<ReportIssue />} />
         <Route path="/issue/:id" element={<IssueDetail />} />
         <Route path="/my-issues" element={<MyIssues />} />

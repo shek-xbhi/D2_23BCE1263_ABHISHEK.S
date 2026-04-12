@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import {
-  LayoutDashboard, PlusCircle, FileText, Shield, MapPin,
+  Home, Compass, PlusCircle, FileText, Shield, MapPin,
   Bell, LogOut, ChevronLeft, ChevronRight, Menu, X, User,
   Building2, Eye
 } from 'lucide-react';
@@ -19,7 +19,8 @@ const Sidebar = ({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) => {
   };
 
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/', label: 'Home', icon: Home },
+    { path: '/explore', label: 'Explore', icon: Compass },
     { path: '/report', label: 'Report a Problem', icon: PlusCircle },
     { path: '/my-issues', label: 'My Issues', icon: FileText },
     { path: '/my-village', label: 'My Village', icon: MapPin },
