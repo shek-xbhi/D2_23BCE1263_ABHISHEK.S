@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, User } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, User, ArrowBigUp, ArrowBigDown, ShieldCheck } from 'lucide-react';
 import { getCategoryById } from '../data/categories';
+import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import StatusBadge from './StatusBadge';
+import toast from 'react-hot-toast';
 
 const InstagramPostCard = ({ issue }) => {
   const navigate = useNavigate();
-  const [liked, setLiked] = useState(false);
+  const { validateIssue, hasValidated } = useApp();
+  const { user } = useAuth();
+  
+  const isUpvoted = hasValidated(issue.id, user?.id);
   const category = getCategoryById(issue.category);
 
   const timeAgo = (dateStr) => {
@@ -20,8 +26,16 @@ const InstagramPostCard = ({ issue }) => {
     return `${Math.floor(days / 7)} w`;
   };
 
-  const handleLike = () => {
-    setLiked(!liked);
+  const handleUpvote = () => {
+    if (!isUpvoted) {
+      validateIssue(issue.id, user?.id);
+    }
+  };
+
+  const handleDownvote = () => {
+    toast.error('Civic actions cannot be downvoted. Report abuse via settings.', {
+        style: { background: '#7f1d1d', color: '#fef2f2' },
+      });
   };
 
   return (
@@ -48,16 +62,27 @@ const InstagramPostCard = ({ issue }) => {
       </div>
 
       {/* Image */}
-      <div className="insta-post-image" onDoubleClick={handleLike}>
+      <div className="insta-post-image" onDoubleClick={handleUpvote}>
         <img src={issue.image} alt={issue.title} loading="lazy" />
       </div>
 
-      {/* Action Bar */}
-      <div className="insta-post-actions">
-        <div className="insta-post-actions-left">
-          <button className={`icon-btn ${liked ? 'liked' : ''}`} onClick={handleLike}>
-            <Heart size={24} fill={liked ? "#ef4444" : "none"} color={liked ? "#ef4444" : "currentColor"} />
-          </button>
+      {/* Action Bar (Reddit Karma + IG Actions) */}
+      <div className="insta-post-actions" style={{ paddingBottom: '0.25rem' }}>
+        <div className="insta-post-actions-left" style={{ gap: '1rem' }}>
+          
+          {/* Trust Score Element */}
+          <div className="reddit-karma-widget" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-input)', borderRadius: '20px', padding: '2px 8px' }}>
+            <button className="icon-btn" style={{ color: isUpvoted ? '#075e54' : 'currentColor' }} onClick={handleUpvote}>
+              <ArrowBigUp size={24} fill={isUpvoted ? '#075e54' : 'none'} />
+            </button>
+            <span style={{ fontWeight: '700', fontSize: '0.9rem', width: '30px', textAlign: 'center' }}>
+              {issue.validations}
+            </span>
+            <button className="icon-btn" style={{ color: 'currentColor' }} onClick={handleDownvote}>
+              <ArrowBigDown size={24} fill="none" />
+            </button>
+          </div>
+
           <button className="icon-btn" onClick={() => navigate(`/issue/${issue.id}`)}>
             <MessageCircle size={24} />
           </button>
@@ -65,16 +90,12 @@ const InstagramPostCard = ({ issue }) => {
             <Send size={24} />
           </button>
         </div>
-        <div className="insta-post-actions-right">
-          <button className="icon-btn">
-            <Bookmark size={24} />
-          </button>
-        </div>
       </div>
 
-      {/* Likes / Validations */}
-      <div className="insta-post-likes">
-        {issue.validations + (liked ? 1 : 0)} validations
+      {/* Trust Score Badge */}
+      <div className="insta-post-likes" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+        <ShieldCheck size={16} color="#075e54" /> 
+        <span>Community Trust Score: {issue.validations}</span>
       </div>
 
       {/* Caption */}

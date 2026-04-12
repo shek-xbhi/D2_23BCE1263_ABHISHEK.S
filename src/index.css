@@ -7,8 +7,8 @@
 
 /* ===== CSS VARIABLES ===== */
 :root {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
+  --bg-primary: #ece5dd;
+  --bg-secondary: rgba(255, 255, 255, 0.7);
   --bg-card: #ffffff;
   --bg-card-hover: #f1f5f9;
   --bg-input: #f1f5f9;
@@ -17,9 +17,9 @@
   --text-primary: #0f172a;
   --text-secondary: #334155;
   --text-muted: #64748b;
-  --accent: #1d4ed8;
-  --accent-hover: #1e40af;
-  --accent-glow: rgba(29, 78, 216, 0.15);
+  --accent: #075e54;
+  --accent-hover: #128c7e;
+  --accent-glow: rgba(7, 94, 84, 0.15);
   --action: #ea580c; /* Saffron/Orange for primary CTAs */
   --action-hover: #c2410c;
   --success: #15803d;
@@ -68,6 +68,7 @@ ul { list-style: none; }
   position: fixed; top: 0; left: 0; bottom: 0;
   width: var(--sidebar-width);
   background: var(--bg-secondary);
+  backdrop-filter: blur(10px);
   border-right: 1px solid var(--border);
   display: flex; flex-direction: column;
   z-index: 100;
@@ -162,7 +163,7 @@ ul { list-style: none; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 1.5rem;
   position: sticky; top: 0; z-index: 50;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(10px);
 }
 .header-left { display: flex; align-items: center; gap: 1rem; flex: 1; }
 .mobile-menu-btn { display: none; padding: 0.5rem; color: var(--text-secondary); }
@@ -230,3 +231,53 @@ ul { list-style: none; }
 .notif-item.unread .notif-dot { background: var(--accent); }
 .notif-content p { font-size: 0.82rem; line-height: 1.4; }
 .notif-time { font-size: 0.7rem; color: var(--text-muted); }
+
+/* ===== NATIVE APP MOBILE LAYOUT (<768px) ===== */
+@media (max-width: 768px) {
+  .app-layout .sidebar {
+    top: auto;
+    bottom: 0;
+    width: 100% !important;
+    height: 65px;
+    flex-direction: row;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    padding: 0;
+    justify-content: space-around;
+    z-index: 1000;
+  }
+  .app-layout .main-content {
+    margin-left: 0 !important;
+    margin-bottom: 65px;
+  }
+  .sidebar-logo, .sidebar-user, .sidebar-stats, .sidebar-location, .logout-btn, .collapse-btn {
+    display: none !important;
+  }
+  .sidebar-nav {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    padding: 0;
+    overflow: hidden;
+  }
+  .nav-item {
+    flex-direction: column;
+    padding: 0.5rem;
+    gap: 4px;
+    border-radius: 0;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    margin-bottom: 0;
+  }
+  .nav-item svg {
+    margin: 0 auto;
+  }
+  .nav-item span {
+    display: block !important;
+    font-size: 0.65rem !important;
+    text-align: center;
+  }
+}

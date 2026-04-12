@@ -1,17 +1,7 @@
 import { getStatusConfig, STATUSES } from '../utils/statusUtils';
-import { CheckCircle2, Circle, ArrowDown } from 'lucide-react';
+import { User, ShieldCheck, ArrowBigUp, ArrowBigDown, MessageSquare } from 'lucide-react';
 
-const TIMELINE_STEPS = [
-  { status: STATUSES.REPORTED, label: 'Reported by Community' },
-  { status: STATUSES.VALIDATED, label: 'Validated by Community' },
-  { status: STATUSES.PANCHAYAT_REVIEW, label: 'Sent to Panchayat' },
-  { status: STATUSES.ESCALATED_PANCHAYAT, label: 'Escalated to Panchayat' },
-  { status: STATUSES.UNDER_REVIEW, label: 'Under Review' },
-  { status: STATUSES.ESCALATED_DISTRICT, label: 'Escalated to District' },
-  { status: STATUSES.RESOLVED, label: 'Resolved' },
-];
-
-const Timeline = ({ timeline = [], currentStatus }) => {
+const Timeline = ({ timeline = [] }) => {
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString('en-IN', {
@@ -23,71 +13,61 @@ const Timeline = ({ timeline = [], currentStatus }) => {
     });
   };
 
-  // Find which steps have been completed
-  const completedStatuses = new Set(timeline.map(t => t.status));
-  
-  // Build display items from actual timeline
-  const timelineMap = {};
-  timeline.forEach(t => {
-    timelineMap[t.status] = t;
-  });
-
+  // Reddit-Style Comment Thread visualization
   return (
-    <div className="timeline">
-      <h3 className="timeline-title">Issue Timeline</h3>
-      <div className="timeline-track">
-        {TIMELINE_STEPS.map((step, index) => {
-          const isCompleted = completedStatuses.has(step.status);
-          const isCurrent = step.status === currentStatus;
-          const timelineEntry = timelineMap[step.status];
-          const config = getStatusConfig(step.status);
+    <div className="reddit-timeline-thread" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+      <h3 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <MessageSquare size={18} /> Official Discussion Thread
+      </h3>
 
-          return (
-            <div
-              key={step.status}
-              className={`timeline-step ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}
-            >
-              <div className="timeline-marker">
-                <div
-                  className="timeline-dot"
-                  style={{
-                    backgroundColor: isCompleted ? config.color : 'transparent',
-                    borderColor: isCompleted ? config.color : 'rgba(148, 163, 184, 0.3)',
-                  }}
-                >
-                  {isCompleted ? (
-                    <CheckCircle2 size={16} color="#fff" />
-                  ) : (
-                    <Circle size={16} color="rgba(148, 163, 184, 0.4)" />
-                  )}
+      {timeline.map((entry, index) => {
+        // Logic to mock an Avatar based on the status context
+        const isAuthorityAction = 
+          entry.status.includes('REVIEW') || 
+          entry.status.includes('ESCALATED') || 
+          entry.status === 'RESOLVED';
+        
+        const config = getStatusConfig(entry.status);
+
+        return (
+          <div key={index} className="reddit-comment-node" style={{
+            display: 'flex', 
+            gap: '0.75rem', 
+            background: isAuthorityAction ? 'rgba(7, 94, 84, 0.05)' : 'var(--bg-card)',
+            borderLeft: isAuthorityAction ? '3px solid var(--accent)' : '3px solid transparent',
+            padding: '1rem',
+            borderRadius: 'var(--radius)',
+            boxShadow: 'var(--shadow)'
+          }}>
+            {/* Karma simulation on comments */}
+            <div className="comment-karma" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: 'var(--text-muted)' }}>
+                <ArrowBigUp size={20} />
+                <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{Math.floor(Math.random() * 50) + 1}</span>
+                <ArrowBigDown size={20} />
+            </div>
+
+            <div className="comment-content" style={{ flex: 1 }}>
+              <div className="comment-header" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <div style={{
+                  width: '24px', height: '24px', borderRadius: '50%',
+                  background: isAuthorityAction ? 'var(--accent)' : '#94a3b8',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
+                }}>
+                  {isAuthorityAction ? <ShieldCheck size={14} /> : <User size={14} />}
                 </div>
-                {index < TIMELINE_STEPS.length - 1 && (
-                  <div
-                    className="timeline-line"
-                    style={{
-                      backgroundColor: isCompleted ? config.color : 'rgba(148, 163, 184, 0.15)',
-                    }}
-                  />
-                )}
+                <strong style={{ fontSize: '0.9rem', color: isAuthorityAction ? 'var(--accent)' : 'var(--text-primary)' }}>
+                  {isAuthorityAction ? 'Official Authority Module' : 'Citizen Network'}
+                </strong>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• {formatDate(entry.timestamp)}</span>
               </div>
-              <div className="timeline-content">
-                <span
-                  className="timeline-label"
-                  style={{ color: isCompleted ? config.color : 'rgba(148, 163, 184, 0.5)' }}
-                >
-                  {step.label}
-                </span>
-                {timelineEntry && (
-                  <>
-                    <span className="timeline-note">{timelineEntry.note}</span>
-                    <span className="timeline-date">{formatDate(timelineEntry.timestamp)}</span>
-                  </>
-                )}
+              
+              <div className="comment-body" style={{ fontSize: '0.9rem', lineHeight: '1.5', color: 'var(--text-secondary)' }}>
+                <p><strong>[{config.label}]</strong> - {entry.note}</p>
               </div>
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

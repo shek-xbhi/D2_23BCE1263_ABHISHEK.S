@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { mockUsers } from '../data/mockData';
 import STORAGE_KEYS, { saveToStorage, loadFromStorage, clearStorage } from '../utils/storage';
+import { apiService } from '../utils/apiService';
 
 const AuthContext = createContext(null);
 
@@ -10,32 +11,80 @@ export const useAuth = () => {
   return context;
 };
 
+// Mock JWT Generator
+const generateMockJWT = (user) => {
+  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const payload = btoa(JSON.stringify({ 
+    sub: user.id, 
+    role: user.role, 
+    exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24) // 24 hours
+  }));
+  const mockSignature = btoa("mock_signature_defense_grade");
+  return `${header}.${payload}.${mockSignature}`;
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => loadFromStorage(STORAGE_KEYS.USER, null));
-  const [isAuthenticated, setIsAuthenticated] = useState(!!loadFromStorage(STORAGE_KEYS.USER));
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
+  // Validate Token on Mount (Middleware Simulation)
   useEffect(() => {
-    if (user) {
-      saveToStorage(STORAGE_KEYS.USER, user);
-      setIsAuthenticated(true);
-    }
-  }, [user]);
+    const validateSession = async () => {
+      const storedUser = loadFromStorage(STORAGE_KEYS.USER, null);
+      const token = sessionStorage.getItem('gw_jwt_token');
 
-  const login = (email, password, role) => {
-    // Mock authentication - find user by role or create one
-    let foundUser = mockUsers.find(u => u.email === email);
+      if (storedUser && token) {
+        try {
+          // Decode payload to check expiration
+          const payloadStr = atob(token.split('.')[1]);
+          const payload = JSON.parse(payloadStr);
+          
+          if (payload.exp > Math.floor(Date.now() / 1000)) {
+            // Simulate network latency for token check
+            await apiService.get({ valid: true });
+            setUser(storedUser);
+            setIsAuthenticated(true);
+          } else {
+            throw new Error("Token expired");
+          }
+        } catch (e) {
+          console.warn("Auth Middleware: Invalid or expired token. Forcing logout.");
+          logout();
+        }
+      }
+      setIsAuthLoading(false);
+    };
+
+    validateSession();
+  }, []);
+
+  const login = async (email, password, role) => {
+    setIsAuthLoading(true);
     
+    // Simulate network authentication request
+    await apiService.post({ email, role });
+
+    let foundUser = mockUsers.find(u => u.email === email);
     if (!foundUser) {
-      // Create a mock user based on role
       foundUser = mockUsers.find(u => u.role === role) || mockUsers[0];
     }
 
+    // Generate JWT and store in Session Storage (More secure than local storage for tokens)
+    const token = generateMockJWT(foundUser);
+    sessionStorage.setItem('gw_jwt_token', token);
+
     setUser(foundUser);
     saveToStorage(STORAGE_KEYS.USER, foundUser);
+    setIsAuthenticated(true);
+    setIsAuthLoading(false);
     return foundUser;
   };
 
-  const signup = (userData) => {
+  const signup = async (userData) => {
+    setIsAuthLoading(true);
+    await apiService.post(userData);
+
     const newUser = {
       id: 'user_' + Date.now(),
       name: userData.name,
@@ -51,8 +100,14 @@ export const AuthProvider = ({ children }) => {
       },
       stats: { reported: 0, validated: 0 },
     };
+
+    const token = generateMockJWT(newUser);
+    sessionStorage.setItem('gw_jwt_token', token);
+
     setUser(newUser);
     saveToStorage(STORAGE_KEYS.USER, newUser);
+    setIsAuthenticated(true);
+    setIsAuthLoading(false);
     return newUser;
   };
 
@@ -60,22 +115,34 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     clearStorage();
+    sessionStorage.removeItem('gw_jwt_token');
   };
 
-  const updateUser = (updates) => {
+  const updateUser = async (updates) => {
+    await apiService.patch(updates);
     const updated = { ...user, ...updates };
     setUser(updated);
     saveToStorage(STORAGE_KEYS.USER, updated);
+  };
+
+  // Auth Middleware Function (can be used directly in components)
+  const requireAuthMiddleware = () => {
+    if (!sessionStorage.getItem('gw_jwt_token')) {
+      return false;
+    }
+    return true;
   };
 
   return (
     <AuthContext.Provider value={{
       user,
       isAuthenticated,
+      isAuthLoading,
       login,
       signup,
       logout,
       updateUser,
+      requireAuthMiddleware,
       isAuthority: user?.role === 'panchayat_authority' || user?.role === 'district_authority',
       isPanchayatAuthority: user?.role === 'panchayat_authority',
       isDistrictAuthority: user?.role === 'district_authority',

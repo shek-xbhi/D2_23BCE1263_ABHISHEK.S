@@ -23,17 +23,72 @@ const ReportIssue = () => {
   });
   const [imagePreview, setImagePreview] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const handleImageUpload = (e) => {
+  // Defense-Grade Media Compression Simulation
+  // Intercepts the raw File object and technically compresses it via an off-DOM canvas,
+  // preventing enormous Base64 payloads from clogging the mock "database".
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const MAX_WIDTH = 800; // Simulated compression width constraint
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Re-encode as WebP format with 0.7 quality to mimic strong compression
+          const compressedDataUrl = canvas.toDataURL('image/webp', 0.7);
+          console.log(`Media Compression complete: Transformed to WebP (${width}x${height})`);
+          resolve(compressedDataUrl);
+        };
+      };
+    });
+  };
+
+  const handleImageUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setFormData(p => ({ ...p, image: reader.result }));
-      };
-      reader.readAsDataURL(file);
+      setIsProcessingImage(true);
+      
+      // Simulate slow media pipeline
+      await new Promise(r => setTimeout(r, 1500));
+
+      // Create an immediate local preview
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+      
+      // Await "Defense-Grade" compression before committing to payload
+      const compressedString = await compressImage(file);
+      setFormData(p => ({ ...p, image: compressedString }));
+      
+      setIsProcessingImage(false);
+
+      // Cleanup
+      setTimeout(() => URL.revokeObjectURL(previewUrl), 5000);
     }
   };
 
@@ -95,8 +150,16 @@ const ReportIssue = () => {
             {/* Image upload */}
             <div className="form-group">
               <label><ImagePlus size={14} /> Upload Image</label>
-              <div className="image-upload-area" onClick={() => document.getElementById('image-input').click()}>
-                {imagePreview ? (
+              <div className="image-upload-area" onClick={() => !isProcessingImage && document.getElementById('image-input').click()}>
+                
+                {isProcessingImage ? (
+                  <div className="upload-placeholder">
+                    <span style={{ fontWeight: 'bold', color: '#075e54' }}>System Processing Pipeline...</span>
+                    <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '4px', marginTop: '10px' }}>
+                      <div style={{ width: '60%', height: '100%', background: '#075e54', borderRadius: '4px', animation: 'pulse 1s infinite alternate' }} />
+                    </div>
+                  </div>
+                ) : imagePreview ? (
                   <div className="image-preview">
                     <img src={imagePreview} alt="Preview" />
                     <button
@@ -118,11 +181,13 @@ const ReportIssue = () => {
                     <span className="upload-hint">JPG, PNG up to 5MB</span>
                   </div>
                 )}
+                
                 <input
                   id="image-input"
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
+                  disabled={isProcessingImage}
                   hidden
                 />
               </div>

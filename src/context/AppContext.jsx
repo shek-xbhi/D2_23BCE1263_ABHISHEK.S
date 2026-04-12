@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { mockIssues } from '../data/mockData';
 import { getStatusFromValidations, STATUSES, STATUS_CONFIG } from '../utils/statusUtils';
 import STORAGE_KEYS, { saveToStorage, loadFromStorage } from '../utils/storage';
+import { apiService } from '../utils/apiService';
 import toast from 'react-hot-toast';
 
 const AppContext = createContext(null);
@@ -63,34 +64,63 @@ export const AppProvider = ({ children }) => {
     });
   }, []);
 
-  const addIssue = useCallback((issueData) => {
-    const newIssue = {
-      id: Math.random().toString(36).substr(2, 9),
-      ...issueData,
-      validations: 0,
-      validatedBy: [],
-      status: STATUSES.REPORTED,
-      currentAuthority: 'Community',
-      remarks: '',
-      timeline: [
-        {
-          status: STATUSES.REPORTED,
-          timestamp: new Date().toISOString(),
-          note: `Issue reported by ${issueData.reporterName}`,
-        },
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    setIssues(prev => [newIssue, ...prev]);
-    addNotification({
-      type: 'status',
-      message: `New issue reported: "${issueData.title}"`,
-      issueId: newIssue.id,
-    });
-    
-    return newIssue;
+  // Simulated Defense-Grade Schema Validation
+  const validateSchema = (data) => {
+    const errors = [];
+    if (!data.category || typeof data.category !== 'string' || data.category.length < 2) {
+      errors.push("Invalid Category UID format.");
+    }
+    if (!data.location?.panchayat || typeof data.location.panchayat !== 'string') {
+      errors.push("Panchayat ID schema boundary violation.");
+    }
+    if (!data.title || data.title.length < 5) {
+      errors.push("Title fails length constraints.");
+    }
+    if (errors.length > 0) throw new Error(errors.join(' | '));
+  };
+
+  const addIssue = useCallback(async (issueData) => {
+    try {
+      // 1. Defense-Grade Schema Evaluation
+      validateSchema(issueData);
+
+      // 2. Network Latency Simulation for API write Operations
+      await apiService.post({ ...issueData, action: 'addIssue' });
+
+      const newIssue = {
+        id: Math.random().toString(36).substr(2, 9),
+        ...issueData,
+        validations: 0,
+        validatedBy: [],
+        status: STATUSES.REPORTED,
+        currentAuthority: 'Community',
+        remarks: '',
+        timeline: [
+          {
+            status: STATUSES.REPORTED,
+            timestamp: new Date().toISOString(),
+            note: `Issue reported by ${issueData.reporterName}`,
+          },
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      setIssues(prev => [newIssue, ...prev]);
+      addNotification({
+        type: 'status',
+        message: `New issue reported: "${issueData.title}"`,
+        issueId: newIssue.id,
+      });
+      
+      return newIssue;
+    } catch (error) {
+      console.error("Schema Validation or Network Error:", error.message);
+      toast.error('Grievance rejected: ' + error.message, {
+        style: { background: '#7f1d1d', color: '#fef2f2' },
+      });
+      throw error;
+    }
   }, [addNotification]);
 
   const validateIssue = useCallback((issueId, userId) => {

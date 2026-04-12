@@ -18,8 +18,8 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const AuthorityRoute = ({ children }) => {
-  const { isAuthenticated, isAuthority } = useAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  const { isAuthenticated, isAuthority, requireAuthMiddleware } = useAuth();
+  if (!isAuthenticated || !requireAuthMiddleware()) return <Navigate to="/login" replace />;
   if (!isAuthority) return <Navigate to="/" replace />;
   return children;
 };
